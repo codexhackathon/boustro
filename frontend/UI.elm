@@ -32,12 +32,16 @@ type alias ViewDimensions = { fullWidth    : Int
 
 menuButton : Int -> Int -> String -> Element
 menuButton w h = let buttonContainer = Graphics.Element.color white << container w h Graphics.Element.middle
-               in buttonContainer << Graphics.Element.centered << Text.style Style.menuStyle << Text.fromString
+                 in buttonContainer << Graphics.Element.centered << Text.style Style.menuStyle << Text.fromString
+
+titleButton : Int -> Int -> String -> Element
+titleButton w h = let buttonContainer = Graphics.Element.color lightOrange << container w h Graphics.Element.middle
+                  in buttonContainer << Graphics.Element.centered << Text.style Style.menuStyle << Text.fromString
 
 menuScene : List Model.TextPart -> ViewDimensions -> Element
 menuScene ts viewDimensions =
-    let toSelectionButton tp = menuButton viewDimensions.textWidth (viewDimensions.fullHeight // L.length ts) tp.title
-        textButtons = flow down <| L.map toSelectionButton ts
+    let toSelectionButton tp = menuButton viewDimensions.textWidth (viewDimensions.fullHeight // 5) tp.title
+        textButtons = flow down <| (titleButton viewDimensions.textWidth (viewDimensions.fullHeight // 5) "Boustrophedon") :: L.map toSelectionButton ts
         fullContainer = container viewDimensions.fullWidth
                                   viewDimensions.fullHeight
                                   Graphics.Element.middle
@@ -66,16 +70,25 @@ viewHelper (w, h) = let linesPerPage = Style.linesPerPage h
 
 currentViewDimensions : Signal ViewDimensions
 currentViewDimensions =
-    let cues = S.mergeMany [ S.map Utils.toUnit Window.dimensions , Utils.initialSetupSignal ]
+    let cues = S.mergeMany [ Utils.initialSetupSignal,  S.map Utils.toUnit Window.dimensions ]
     in S.sampleOn cues <| S.map viewHelper Window.dimensions
 
 type UserInput = Gesture GestureType
                | SetText String
                | SummonMenu (List Model.TextPart)
 
+menuKey : Signal ()
+menuKey = let toMenuTouch tap viewDims =
+
+            if | tap.y < (viewDims.fullHeight // 6) -> True
+               | otherwise                          -> False
+
+           in S.mergeMany [ Utils.onTrueUpdate <| Keyboard.space
+                          , Utils.onTrueUpdate <| S.map2 toMenuTouch Touch.taps currentViewDimensions ]
+
+
 showMenu : Signal (List Model.TextPart)
-showMenu = let menuKey = Utils.onTrueUpdate <| Keyboard.space
-               menuCues = S.mergeMany [ menuKey, Utils.secondSetupSignal ]
+showMenu = let menuCues = S.mergeMany [ menuKey, Utils.secondSetupSignal ]
            in S.sampleOn menuCues (S.constant textList)
 
 userInput : Signal UserInput
@@ -92,8 +105,8 @@ type GestureType = Next | Prev | NoGesture
 gesture = S.merge arrowGesture tapGesture
 
 arrowGesture : Signal GestureType
-arrowGesture = let toGesture x = if | x < 0 -> Prev
-                                    | x > 0 -> Next
+arrowGesture = let toGesture x = if | x < 0     -> Prev
+                                    | x > 0     -> Next
                                     | otherwise -> NoGesture
                in S.map (toGesture << .x) Keyboard.arrows
 
@@ -101,21 +114,26 @@ tapGesture : Signal GestureType
 tapGesture =
     let untappedValue : (Time, Tap, Bool)
         untappedValue = (0, { x = -1, y = -1 }, False)
+
         doubleTap = S.map (\(x,y,z) -> z) <| S.foldp isDoubleTap untappedValue
                                           <| timestamp Touch.taps
+
         toGestureType tap viewDims =
             if | tap.x < (viewDims.fullWidth // 2 - 40) -> Prev
                | tap.x > (viewDims.fullWidth // 2 + 40) -> Next
                | otherwise -> NoGesture
-        currentGestureType = S.map2 toGestureType Touch.taps
-                                                  currentViewDimensions
+
+        currentGestureType = S.map2 toGestureType Touch.taps currentViewDimensions
+
     in  S.sampleOn (Utils.onFalseTrueTransition doubleTap) currentGestureType
 
 isDoubleTap : (Time, Tap) -> (Time, Tap, Bool) -> (Time, Tap, Bool)
 isDoubleTap (newTapTime, newTap) (oldTapTime, oldTap, wasDoubleTap) =
+
     let doubleTapMargin = 80
         maxDoubleTapInterval : Time
         maxDoubleTapInterval = 0.5 * second
+
     in if | wasDoubleTap -> (newTapTime, newTap, False)
           | newTapTime - oldTapTime < maxDoubleTapInterval &&
               abs (newTap.x - oldTap.x) < doubleTapMargin &&

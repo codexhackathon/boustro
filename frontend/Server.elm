@@ -7,9 +7,9 @@ serverUrl : String
 serverUrl = "http://boustro.com/"
 
 textList : List TextPart
-textList = [ { title = "My Lost City", path = "my-lost-city-fitzgerald.txt" }
-           , { title = "A Room of one's own", path = "room-of-ones-own.txt" }
-           , { title = "Les Chants de Maldoror", path = "chants.txt" }
+textList = [ { title = "My Lost City",              path = "my-lost-city-fitzgerald.txt" }
+           , { title = "A Room of one's own",       path = "room-of-ones-own.txt" }
+           , { title = "Les Chants de Maldoror",    path = "chants.txt" }
            , { title = "История Русской Революции", path = "trotsky.txt" }
            ]
 

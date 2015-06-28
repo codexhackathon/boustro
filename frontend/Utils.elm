@@ -12,12 +12,12 @@ onTrueUpdate signal = SE.keepWhen signal () (S.map toUnit signal)
 initialSetupSignal : Signal ()
 initialSetupSignal = S.map toUnit << S.dropRepeats
                                   << S.foldp (\_ _ -> 1) 0
-                                  <| every (10 * millisecond)
+                                  <| every (20 * millisecond)
 
 secondSetupSignal : Signal ()
 secondSetupSignal = S.map toUnit << S.dropRepeats
                                  << S.foldp (\_ _ -> 1) 0
-                                 <| every (2500 * millisecond)
+                                 <| every (2000 * millisecond)
 
 
 minWith : (a -> comparable) -> List a -> a
